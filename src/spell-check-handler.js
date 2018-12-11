@@ -206,7 +206,7 @@ export default class SpellCheckHandler {
    * @return {Disposable}       A Disposable which will unregister all of the
    *                            things that this method registered.
    */
-  attachToInput(inputText=null) {
+  attachToInput(inputText=null, args = {}) {
     // OS X has no need for any of this
     if (isMac && !inputText) {
       return Subscription.EMPTY;
@@ -215,15 +215,22 @@ export default class SpellCheckHandler {
     let possiblySwitchedCharacterSets = new Subject();
     let wordsTyped = 0;
 
-    if (!inputText && !document.body) {
+    if (!inputText && !document.body && !args.targetElement) {
       throw new Error("document.body is null, if you're calling this in a preload script you need to wrap it in a setTimeout");
     }
 
-    let input = inputText || (fromEventCapture(document.body, 'input')
+    let input = inputText || (fromEventCapture(args.targetElement || document.body, 'input')
       .mergeMap((e) => {
-        if (!e.target) return Observable.empty();
-        const value = e.target.isContentEditable ? e.target.textContent : e.target.value;
-        if (!value) return Observable.empty();
+
+        if (!e.target) {
+          return Observable.empty();
+        }
+
+        let value = e.target.isContentEditable ? e.target.textContent : e.target.value;
+
+        if (!value) {
+          return Observable.empty();
+        }
 
         if (value.match(/\S\s$/)) {
           wordsTyped++;
@@ -260,9 +267,9 @@ export default class SpellCheckHandler {
     }
 
     let contentToCheck = Observable.merge(
-        this.spellingErrorOccurred,
-        initialInputText,
-        possiblySwitchedCharacterSets)
+      this.spellingErrorOccurred,
+      initialInputText,
+      possiblySwitchedCharacterSets)
       .mergeMap(() => {
         if (lastInputText.length < 8) return Observable.empty();
         return Observable.of(lastInputText);
@@ -300,7 +307,7 @@ export default class SpellCheckHandler {
       let prevSpellCheckLanguage;
 
       disp.add(this.currentSpellcheckerChanged
-          .startWith(true)
+        .startWith(true)
         .filter(() => this.currentSpellcheckerLanguage)
         .subscribe(() => {
           if (prevSpellCheckLanguage === this.currentSpellcheckerLanguage) return;
@@ -454,7 +461,7 @@ export default class SpellCheckHandler {
     return await Observable.of(...alternatives)
       .concatMap((l) => {
         return Observable.defer(() =>
-            Observable.fromPromise(this.dictionarySync.loadDictionaryForLanguage(l, cacheOnly)))
+          Observable.fromPromise(this.dictionarySync.loadDictionaryForLanguage(l, cacheOnly)))
           .map((d) => ({language: l, dictionary: d}))
           .do(({language}) => {
             alternatesTable[langCode] = language;
@@ -627,7 +634,7 @@ export default class SpellCheckHandler {
     // Some distros like Ubuntu make locale -a useless by dumping
     // every possible locale for the language into the list :-/
     let counts = localeList.reduce((acc,x) => {
-      let k = x.split(/[-_\.]/)[0];
+      let k = x.split(/[-_.]/)[0];
       acc[k] = acc[k] || [];
       acc[k].push(x);
 
@@ -650,7 +657,7 @@ export default class SpellCheckHandler {
       let m = process.env.LANG.match(validLangCodeWindowsLinux);
       if (!m) return ret;
 
-      ret[m[0].split(/[-_\.]/)[0]] = normalizeLanguageCode(m[0]);
+      ret[m[0].split(/[-_.]/)[0]] = normalizeLanguageCode(m[0]);
     }
 
     d(`Result: ${JSON.stringify(ret)}`);
