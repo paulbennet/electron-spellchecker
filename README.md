@@ -16,8 +16,10 @@ try {
   iframeDocumentBody = document.body.querySelectorAll("iframe")[0].contentWindow.document.body;
 } catch (err) {}
 
-spellcheckHandler.attachToInput(null, {
-  targetElement: iframeDocumentBody
-});
+if (iframeDocumentBody) {
+  spellcheckHandler.attachToInput(null, {
+    targetElement: iframeDocumentBody
+  });
+}
 // ...
 ```
