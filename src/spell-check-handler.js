@@ -207,8 +207,9 @@ export default class SpellCheckHandler {
    *                            things that this method registered.
    */
   attachToInput(inputText=null, args = {}) {
+
     // OS X has no need for any of this
-    if (isMac && !inputText) {
+    if (isMac && !inputText && !args.targetElement) {
       return Subscription.EMPTY;
     }
 
@@ -217,6 +218,11 @@ export default class SpellCheckHandler {
 
     if (!inputText && !document.body && !args.targetElement) {
       throw new Error("document.body is null, if you're calling this in a preload script you need to wrap it in a setTimeout");
+    }
+
+    if (args.targetElement && args.targetElement.getAttribute("spellcheck") === "false") {
+      d("targetElement has spellcheck disabled ( spellcheck=\"false\" )");
+      return Subscription.EMPTY;
     }
 
     let input = inputText || (fromEventCapture(args.targetElement || document.body, 'input')
