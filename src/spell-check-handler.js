@@ -1,37 +1,37 @@
-import {spawn} from 'spawn-rx';
-import {requireTaskPool} from 'electron-remote';
-import LRU from 'lru-cache';
+const {spawn} = require('spawn-rx');
+const {requireTaskPool} = require('electron-remote');
+const LRU = require('lru-cache');
 
-import {Subscription} from 'rxjs/Subscription';
-import {Observable} from 'rxjs/Observable';
-import {Subject} from 'rxjs/Subject';
-import SerialSubscription from 'rxjs-serial-subscription';
+const {Subscription} = require('rxjs/Subscription');
+const {Observable} = require('rxjs/Observable');
+const {Subject} = require('rxjs/Subject');
+const SerialSubscription = require('rxjs-serial-subscription').default;
 
-import 'rxjs/add/observable/defer';
-import 'rxjs/add/observable/empty';
-import 'rxjs/add/observable/fromEvent';
-import 'rxjs/add/observable/fromPromise';
-import 'rxjs/add/observable/of';
+require('rxjs/add/observable/defer');
+require('rxjs/add/observable/empty');
+require('rxjs/add/observable/fromEvent');
+require('rxjs/add/observable/fromPromise');
+require('rxjs/add/observable/of');
 
-import 'rxjs/add/operator/catch';
-import 'rxjs/add/operator/concat';
-import 'rxjs/add/operator/concatMap';
-import 'rxjs/add/operator/do';
-import 'rxjs/add/operator/filter';
-import 'rxjs/add/operator/mergeMap';
-import 'rxjs/add/operator/merge';
-import 'rxjs/add/operator/observeOn';
-import 'rxjs/add/operator/reduce';
-import 'rxjs/add/operator/startWith';
-import 'rxjs/add/operator/take';
-import 'rxjs/add/operator/takeUntil';
-import 'rxjs/add/operator/throttle';
-import 'rxjs/add/operator/toPromise';
+require('rxjs/add/operator/catch');
+require('rxjs/add/operator/concat');
+require('rxjs/add/operator/concatMap');
+require('rxjs/add/operator/do');
+require('rxjs/add/operator/filter');
+require('rxjs/add/operator/mergeMap');
+require('rxjs/add/operator/merge');
+require('rxjs/add/operator/observeOn');
+require('rxjs/add/operator/reduce');
+require('rxjs/add/operator/startWith');
+require('rxjs/add/operator/take');
+require('rxjs/add/operator/takeUntil');
+require('rxjs/add/operator/throttle');
+require('rxjs/add/operator/toPromise');
 
-import './custom-operators';
+require('./custom-operators');
 
-import DictionarySync from './dictionary-sync';
-import {normalizeLanguageCode} from './utility';
+const DictionarySync = require('./dictionary-sync');
+const {normalizeLanguageCode} = require('./utility');
 
 let Spellchecker;
 
@@ -104,7 +104,7 @@ function fromEventCapture(element, name) {
  * would be a great sample, or in the case of Slack, the existing channel messages
  * are used as the sample text.
  */
-export default class SpellCheckHandler {
+module.exports = class SpellCheckHandler {
   /**
    * Constructs a SpellCheckHandler
    *
@@ -127,9 +127,7 @@ export default class SpellCheckHandler {
     this.currentSpellcheckerChanged = new Subject();
     this.spellCheckInvoked = new Subject();
     this.spellingErrorOccurred = new Subject();
-    this.isMisspelledCache = new LRU({
-      max: 512, maxAge: 4 * 1000
-    });
+    this.isMisspelledCache = new LRU({ max: 5000 });
 
     this.scheduler = scheduler;
     this.shouldAutoCorrect = true;
@@ -165,7 +163,7 @@ export default class SpellCheckHandler {
   set automaticallyIdentifyLanguages(value) {
     this._automaticallyIdentifyLanguages = !!value;
 
-    // Calling `setDictionary` on the macOS implementation of `@paulcbetts/spellchecker`
+    // Calling `setDictionary` on the macOS implementation of `@nornagon/spellchecker`
     // is the only way to set the `automaticallyIdentifyLanguages` property on the
     // native NSSpellchecker. Calling switchLanguage with a language will set it `false`,
     // while calling it with an empty language will set it to `true`
@@ -206,23 +204,39 @@ export default class SpellCheckHandler {
    * @return {Disposable}       A Disposable which will unregister all of the
    *                            things that this method registered.
    */
-  attachToInput(inputText=null) {
+  attachToInput(inputText=null, args = {}) {
+
     // OS X has no need for any of this
-    if (isMac && !inputText) {
+    if (isMac && !inputText && !args.targetElement) {
       return Subscription.EMPTY;
     }
 
     let possiblySwitchedCharacterSets = new Subject();
     let wordsTyped = 0;
 
-    if (!inputText && !document.body) {
+    if (!inputText && !document.body && !args.targetElement) {
       throw new Error("document.body is null, if you're calling this in a preload script you need to wrap it in a setTimeout");
     }
 
-    let input = inputText || (fromEventCapture(document.body, 'input')
+    if (args.targetElement && args.targetElement.getAttribute("spellcheck") === "false") {
+      d("targetElement has spellcheck disabled ( spellcheck=\"false\" )");
+      return Subscription.EMPTY;
+    }
+
+    let input = inputText || (fromEventCapture(args.targetElement || document.body, 'input')
       .mergeMap((e) => {
-        if (!e.target || !e.target.value) return Observable.empty();
-        if (e.target.value.match(/\S\s$/)) {
+
+        if (!e.target) {
+          return Observable.empty();
+        }
+
+        let value = e.target.isContentEditable ? e.target.textContent : e.target.value;
+
+        if (!value) {
+          return Observable.empty();
+        }
+
+        if (value.match(/\S\s$/)) {
           wordsTyped++;
         }
 
@@ -231,7 +245,7 @@ export default class SpellCheckHandler {
           possiblySwitchedCharacterSets.next(true);
         }
 
-        return Observable.of(e.target.value);
+        return Observable.of(value);
       }));
 
     let disp = new Subscription();
@@ -257,9 +271,9 @@ export default class SpellCheckHandler {
     }
 
     let contentToCheck = Observable.merge(
-        this.spellingErrorOccurred,
-        initialInputText,
-        possiblySwitchedCharacterSets)
+      this.spellingErrorOccurred,
+      initialInputText,
+      possiblySwitchedCharacterSets)
       .mergeMap(() => {
         if (lastInputText.length < 8) return Observable.empty();
         return Observable.of(lastInputText);
@@ -297,7 +311,7 @@ export default class SpellCheckHandler {
       let prevSpellCheckLanguage;
 
       disp.add(this.currentSpellcheckerChanged
-          .startWith(true)
+        .startWith(true)
         .filter(() => this.currentSpellcheckerLanguage)
         .subscribe(() => {
           if (prevSpellCheckLanguage === this.currentSpellcheckerLanguage) return;
@@ -389,6 +403,8 @@ export default class SpellCheckHandler {
     let actualLang;
     let dict = null;
 
+    this.isMisspelledCache.reset();
+    
     // Set language on macOS
     if (isMac && this.currentSpellchecker) {
       d(`Setting current spellchecker to ${langCode}`);
@@ -397,8 +413,6 @@ export default class SpellCheckHandler {
     }
 
     // Set language on Linux & Windows (Hunspell)
-    this.isMisspelledCache.reset();
-
     try {
       const {dictionary, language} = await this.loadDictionaryForLanguageWithAlternatives(langCode);
       actualLang = language; dict = dictionary;
@@ -451,7 +465,7 @@ export default class SpellCheckHandler {
     return await Observable.of(...alternatives)
       .concatMap((l) => {
         return Observable.defer(() =>
-            Observable.fromPromise(this.dictionarySync.loadDictionaryForLanguage(l, cacheOnly)))
+          Observable.fromPromise(this.dictionarySync.loadDictionaryForLanguage(l, cacheOnly)))
           .map((d) => ({language: l, dictionary: d}))
           .do(({language}) => {
             alternatesTable[langCode] = language;
@@ -575,6 +589,7 @@ export default class SpellCheckHandler {
     if (!isMac) return;
     if (!this.currentSpellchecker) return;
 
+    this.isMisspelledCache.reset();
     this.currentSpellchecker.add(text);
   }
 
@@ -624,7 +639,7 @@ export default class SpellCheckHandler {
     // Some distros like Ubuntu make locale -a useless by dumping
     // every possible locale for the language into the list :-/
     let counts = localeList.reduce((acc,x) => {
-      let k = x.split(/[-_\.]/)[0];
+      let k = x.split(/[-_.]/)[0];
       acc[k] = acc[k] || [];
       acc[k].push(x);
 
@@ -647,7 +662,7 @@ export default class SpellCheckHandler {
       let m = process.env.LANG.match(validLangCodeWindowsLinux);
       if (!m) return ret;
 
-      ret[m[0].split(/[-_\.]/)[0]] = normalizeLanguageCode(m[0]);
+      ret[m[0].split(/[-_.]/)[0]] = normalizeLanguageCode(m[0]);
     }
 
     d(`Result: ${JSON.stringify(ret)}`);
