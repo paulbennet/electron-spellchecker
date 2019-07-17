@@ -35,23 +35,23 @@
     "lru-cache": "^5.1.1",
     "mkdirp": "^0.5.1",
     "pify": "^4.0.1",
-    "rxjs": "^5.0.1",
+    "rxjs": "^5.5.12",
     "rxjs-serial-subscription": "^0.1.1",
     "spawn-rx": "^2.0.7"
   },
   "devDependencies": {
-    "@kwonoj/rxjs-testscheduler-compat": "0.0.4",
-    "babel-eslint": "^10.0.1",
+    "@kwonoj/rxjs-testscheduler-compat": "^0.0.4",
+    "babel-eslint": "^10.0.2",
     "chai": "^3.5.0",
     "chai-as-promised": "^6.0.0",
     "cross-env": "^5.2.0",
-    "electron": "4.0.6",
-    "electron-debug": "^2.1.0",
+    "electron": "^5.0.7",
+    "electron-debug": "^2.2.0",
     "electron-mocha": "^6.0.4",
     "esdoc": "^1.1.0",
-    "esdoc-es7-plugin": "0.0.3",
+    "esdoc-es7-plugin": "^0.0.3",
     "esdoc-plugin-async-to-sync": "^0.5.0",
-    "eslint": "^5.14.1",
+    "eslint": "^5.16.0",
     "rimraf": "^2.6.3"
   }
 }
