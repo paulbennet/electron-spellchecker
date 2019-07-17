@@ -197,6 +197,8 @@ module.exports = class SpellCheckHandler {
    *
    * @param  {Observable<String>} inputText     Simulate the user typing text,
    *                                            for testing.
+   * @param  {Object} args Options for api
+   * @param  {HTMLElement} [args.targetElement] Target element to bind to
    *
    * @return {Disposable}       A Disposable which will unregister all of the
    *                            things that this method registered.

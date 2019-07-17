@@ -3,24 +3,33 @@
   "destination": "./docs",
   "includes": ["\\.(js|es6)$"],
   "excludes": ["\\.config\\.(js|es6)$"],
-  "access": ["public", "protected"],
-  "autoPrivate": true,
-  "unexportIdentifier": false,
-  "undocumentIdentifier": true,
-  "builtinExternal": true,
   "index": "./README.md",
   "package": "./package.json",
-  "coverage": true,
-  "includeSource": true,
-  "title": "electron-compilers",
   "plugins": [
-    {"name": "esdoc-es7-plugin"},
-    {"name": "esdoc-plugin-async-to-sync"}
-  ],
-  "test": {
-    "type": "mocha",
-    "source": "./test",
-    "includes": ["\\.(js|es6)$"]
-  },
-  "lint": true
+    {
+      "name": "esdoc-standard-plugin",
+      "option": {
+        "lint": {"enable": true},
+        "accessor": {
+          "access": ["public", "protected"],
+          "autoPrivate": true
+        },
+        "undocumentIdentifier": {
+          "enable": true
+        },
+        "unexportIdentifier": {
+          "enable": false
+        },
+        "coverage": {"enable": true}
+      },
+      "test": {
+        "interfaces": [ "mocha" ],
+        "source": "./test",
+        "includes": ["\\.(js|es6)$"]
+      },
+      "brand": {
+        "title": "electron-compilers"
+      }
+    }
+  ]
 }
