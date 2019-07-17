@@ -1,5 +1,5 @@
 const {spawn} = require('spawn-rx');
-const {requireTaskPool} = require('electron-remote');
+const {requireTaskPool} = require('@aabuhijleh/electron-remote');
 const LRU = require('lru-cache');
 
 const {Subscription} = require('rxjs/Subscription');
@@ -141,10 +141,7 @@ module.exports = class SpellCheckHandler {
       this.currentSpellcheckerLanguage = 'en-US';
 
       if (webFrame) {
-        webFrame.setSpellCheckProvider(
-          this.currentSpellcheckerLanguage,
-          this.shouldAutoCorrect,
-          { spellCheck: this.handleElectronSpellCheck.bind(this) });
+        this.setSpellCheckProvider(webFrame);
       }
       return;
     }
@@ -295,7 +292,7 @@ module.exports = class SpellCheckHandler {
       .mergeMap(async (langWithoutLocale) => {
         d(`Auto-detected language as ${langWithoutLocale}`);
         let lang = await this.getLikelyLocaleForLanguage(langWithoutLocale);
-        if (lang !== this.currentSpellcheckerLanguage) await this.switchLanguage(lang);
+        if ( (lang !== this.currentSpellcheckerLanguage) || (!this.currentSpellchecker) ) await this.switchLanguage(lang);
 
         return lang;
       })
@@ -317,10 +314,7 @@ module.exports = class SpellCheckHandler {
           if (prevSpellCheckLanguage === this.currentSpellcheckerLanguage) return;
 
           d('Actually installing spell check provider to Electron');
-          webFrame.setSpellCheckProvider(
-            this.currentSpellcheckerLanguage,
-            this.shouldAutoCorrect,
-            { spellCheck: this.handleElectronSpellCheck.bind(this) });
+          this.setSpellCheckProvider(webFrame);
 
           prevSpellCheckLanguage = this.currentSpellcheckerLanguage;
         }));
@@ -479,10 +473,30 @@ module.exports = class SpellCheckHandler {
   }
 
   /**
-   *  The actual callout called by Electron to handle spellchecking
+   *  Sets the SpellCheckProvider on the given WebFrame. Handles API differences
+   *  in Electron.
+   *  @private
+   *  @param {*} webFrame
+   */
+  setSpellCheckProvider(webFrame) {
+    if (process.versions.electron >= '5.0.0') {
+      webFrame.setSpellCheckProvider(
+        this.currentSpellcheckerLanguage,
+        { spellCheck: this.handleElectronSpellCheck.bind(this) });
+    } else {
+      webFrame.setSpellCheckProvider(
+        this.currentSpellcheckerLanguage,
+        this.shouldAutoCorrect,
+        { spellCheck: this.handleElectron4SpellCheck.bind(this) });
+    }
+  }
+
+  /**
+   *  The actual callout called by Electron version 4 and below to handle
+   *  spellchecking
    *  @private
    */
-  handleElectronSpellCheck(text) {
+  handleElectron4SpellCheck(text) {
     if (!this.currentSpellchecker) return true;
 
     if (isMac) {
@@ -494,6 +508,29 @@ module.exports = class SpellCheckHandler {
     let result = this.isMisspelled(text);
     if (result) this.spellingErrorOccurred.next(text);
     return !result;
+  }
+
+  /**
+   *  The actual callout called by Electron version 5 and above to handle 
+   *  spellchecking.
+   *  @private
+   */
+  handleElectronSpellCheck(words, callback) {
+    if (!this.currentSpellchecker) {
+      callback([]);
+      return;
+    }
+
+    let misspelled = words.filter(w => this.isMisspelled(w));
+
+    if (isMac) {
+      callback(misspelled);
+      return;
+    }
+
+    this.spellCheckInvoked.next(true);
+    misspelled.forEach(w => this.spellingErrorOccurred.next(w));
+    callback(misspelled);
   }
 
   /**
@@ -668,4 +705,4 @@ module.exports = class SpellCheckHandler {
     d(`Result: ${JSON.stringify(ret)}`);
     return ret;
   }
-}
+};
