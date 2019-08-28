@@ -1,6 +1,6 @@
 {
   "name": "@paulbennetjoshua/electron-spellchecker",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Implement spellchecking, correctly",
   "scripts": {
     "doc": "esdoc -c ./esdoc.json",
@@ -23,7 +23,7 @@
   "bugs": {
     "url": "https://github.com/paulbennet/electron-spellchecker/issues"
   },
-  "main": "lib/index.js",
+  "main": "src/index.js",
   "homepage": "https://github.com/paulbennet/electron-spellchecker",
   "dependencies": {
     "@aabuhijleh/electron-remote": "^1.4.0",
