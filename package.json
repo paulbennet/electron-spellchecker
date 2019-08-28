@@ -1,6 +1,6 @@
 {
   "name": "@paulbennetjoshua/electron-spellchecker",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Implement spellchecking, correctly",
   "scripts": {
     "doc": "esdoc -c ./esdoc.json",
@@ -41,11 +41,11 @@
   },
   "devDependencies": {
     "@kwonoj/rxjs-testscheduler-compat": "^0.0.4",
-    "babel-eslint": "^10.0.2",
+    "babel-eslint": "^10.0.3",
     "chai": "^3.5.0",
     "chai-as-promised": "^6.0.0",
     "cross-env": "^5.2.0",
-    "electron": "^5.0.7",
+    "electron": "^5.0.10",
     "electron-debug": "^2.2.0",
     "electron-mocha": "^6.0.4",
     "esdoc": "^1.1.0",
@@ -53,6 +53,6 @@
     "esdoc-plugin-async-to-sync": "^0.5.0",
     "esdoc-standard-plugin": "^1.0.0",
     "eslint": "^5.16.0",
-    "rimraf": "^2.6.3"
+    "rimraf": "^2.7.1"
   }
 }
